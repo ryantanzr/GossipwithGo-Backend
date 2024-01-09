@@ -16,15 +16,15 @@ type User struct {
 	Password string `json:"password"`
 }
 
-func ScanIntoUser(rows *pgx.Rows) (User, error) {
+func ScanIntoUser(rows *pgx.Rows) (*User, error) {
 
 	user := User{0, "", ""}
 	if err := pgxscan.ScanRow(&user, *rows); err != nil {
 		fmt.Println("Scan row error", err)
-		return user, err
+		return &user, err
 	}
 
-	return user, nil
+	return &user, nil
 
 }
 

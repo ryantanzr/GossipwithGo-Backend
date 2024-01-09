@@ -8,89 +8,133 @@ import (
 	"github.com/ryantanzr/GossipwithGo-Backend/internal/models"
 )
 
-// POST a new user into the database
-func Registeration(c *gin.Context) {
+// Utility function to process a json object for general account related activities
+func handleAccountRequest(ctx *gin.Context) (*models.User, error) {
 
 	var input models.AccountRequest
 
-	if err := c.BindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	//Bind the json to the request object
+	if err := ctx.BindJSON(&input); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return nil, err
+	}
+
+	//Map it to the user model and return it
+	return &models.User{
+		Username: input.Username,
+		Password: input.Password,
+	}, nil
+}
+
+// POST a new user into the database
+func Registration(ctx *gin.Context) {
+
+	//Bind the json to the request object
+	user, err := handleAccountRequest(ctx)
+	if err != nil {
 		return
 	}
 
-	user := models.User{
-		Username: input.Username,
-		Password: input.Password,
-	}
-
+	//Get the database store
 	pgs, err := database.GetDatabaseStore()
 	if err != nil {
 		return
 	}
 
-	err = pgs.CreateUser(&user)
+	//Create a new user
+	err = pgs.CreateUser(user)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"user": user})
-
+	//Return a json to indicate the operation was successful
+	ctx.JSON(http.StatusCreated, gin.H{"user": user})
 }
 
 // GET a user from postgres by their username
-func Login(c *gin.Context) {
+func Login(ctx *gin.Context) {
 
-	var input models.AccountRequest
-
-	if err := c.BindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	//Bind the json to the request object
+	user, err := handleAccountRequest(ctx)
+	if err != nil {
 		return
 	}
 
-	user := models.User{
-		Username: input.Username,
-		Password: input.Password,
-	}
-
+	//Get the database
 	pgs, err := database.GetDatabaseStore()
 	if err != nil {
 		return
 	}
 
-	row := pgs.GetAccountByUsername(&user)
+	//Query the database for the account and scan the data into the row
+	row := pgs.GetAccountByUsername(user)
 	user, err = models.ScanIntoUser(&row)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
 
-	c.JSON(http.StatusOK, gin.H{"user": user})
-
+	//Return a json to indicate the operation was successful
+	ctx.JSON(http.StatusOK, gin.H{"user": user})
 }
 
 // DELETE a user
-func DeleteAccount(c *gin.Context) {
+func DeleteAccount(ctx *gin.Context) {
 
-	var input models.AccountRequest
-
-	if err := c.BindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	//Handle the account request
+	user, err := handleAccountRequest(ctx)
+	if err != nil {
 		return
 	}
 
-	user := models.User{
-		Username: input.Username,
-		Password: input.Password,
-	}
-
+	//Get the store
 	pgs, err := database.GetDatabaseStore()
 	if err != nil {
 		return
 	}
 
-	err = pgs.DeleteUser(&user)
+	//Delete the user
+	err = pgs.DeleteUser(user)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
 
-	c.JSON(http.StatusOK, gin.H{"user": user})
+	//Return a json to indicate the operation was successful
+	ctx.JSON(http.StatusOK, gin.H{"user": user})
+}
+
+// PUT a new version of the user details into the database
+func UpdateUserDetails(ctx *gin.Context) {
+
+	var input models.UpdateRequest
+
+	//Bind the json to the request object
+	if err := ctx.BindJSON(&input); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	//Map the details in the request accordingly
+	oldUser := models.User{
+		Username: input.Oldusername,
+		Password: input.Oldpassword,
+	}
+	newUser := models.User{
+		Username: input.Newusername,
+		Password: input.Newpassword,
+	}
+
+	//Get the store
+	pgs, err := database.GetDatabaseStore()
+	if err != nil {
+		return
+	}
+
+	//Update the user
+	err = pgs.UpdateUser(&oldUser, input.Newusername, input.Newpassword)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+
+	//Return a json to indicate the operation was successful
+	ctx.JSON(http.StatusOK, gin.H{"user": newUser})
 }
