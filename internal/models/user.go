@@ -1,29 +1,46 @@
 package models
 
 import (
+	"fmt"
 	"html"
 	"strings"
 
+	"github.com/georgysavva/scany/v2/pgxscan"
+	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type User struct {
 	ID       int    `json:"id"`
-	username string `json:"name"`
-	password string `json:"password"`
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
-func (user *User) encryptData() error {
+func ScanIntoUser(rows *pgx.Rows) (User, error) {
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(user.password), bcrypt.DefaultCost)
+	user := User{0, "", ""}
+	if err := pgxscan.ScanRow(&user, *rows); err != nil {
+		fmt.Println("Scan row error", err)
+		return user, err
+	}
+
+	return user, nil
+
+}
+
+// Encrypts a password with bcrypt algorithm to produce a hash
+func (user *User) EncryptData() error {
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
-	user.password = string(hash)
-	user.username = html.EscapeString(strings.TrimSpace(user.username))
+	user.Password = string(hash)
+	user.Username = html.EscapeString(strings.TrimSpace(user.Username))
 	return nil
 }
 
-func (user *User) validatePassword(pw string) error {
-	return bcrypt.CompareHashAndPassword([]byte(user.password), []byte(pw))
+// Checks against the passwords
+func (user *User) ValidatePassword(pw string) error {
+	return bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(pw))
 }
