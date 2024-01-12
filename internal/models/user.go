@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
-	"github.com/jackc/pgx/v5"
+	pgx "github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 

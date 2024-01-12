@@ -8,41 +8,44 @@ import (
 	"github.com/ryantanzr/GossipwithGo-Backend/internal/models"
 )
 
+type Handler struct {
+	databaseStore database.PostgresStore
+}
+
+func InitializeHandler(dbs database.PostgresStore) Handler {
+	return Handler{databaseStore: dbs}
+}
+
 // Utility function to process a json object for general account related activities
-func handleAccountRequest(ctx *gin.Context) (*models.User, error) {
+func (h *Handler) handleAccountRequest(ctx *gin.Context) (*models.User, error) {
 
 	var input models.AccountRequest
 
 	//Bind the json to the request object
 	if err := ctx.BindJSON(&input); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusBadRequest, gin.H{"accError": err.Error()})
 		return nil, err
 	}
 
 	//Map it to the user model and return it
 	return &models.User{
+		ID:       input.ID,
 		Username: input.Username,
 		Password: input.Password,
 	}, nil
 }
 
 // POST a new user into the database
-func Registration(ctx *gin.Context) {
+func (h *Handler) Registration(ctx *gin.Context) {
 
 	//Bind the json to the request object
-	user, err := handleAccountRequest(ctx)
-	if err != nil {
-		return
-	}
-
-	//Get the database store
-	pgs, err := database.GetDatabaseStore()
+	user, err := h.handleAccountRequest(ctx)
 	if err != nil {
 		return
 	}
 
 	//Create a new user
-	err = pgs.CreateUser(user)
+	err = h.databaseStore.CreateUser(user)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
@@ -52,22 +55,16 @@ func Registration(ctx *gin.Context) {
 }
 
 // GET a user from postgres by their username
-func Login(ctx *gin.Context) {
+func (h *Handler) Login(ctx *gin.Context) {
 
 	//Bind the json to the request object
-	user, err := handleAccountRequest(ctx)
-	if err != nil {
-		return
-	}
-
-	//Get the database
-	pgs, err := database.GetDatabaseStore()
+	user, err := h.handleAccountRequest(ctx)
 	if err != nil {
 		return
 	}
 
 	//Query the database for the account and scan the data into the row
-	row := pgs.GetAccountByUsername(user)
+	row := h.databaseStore.GetAccountByUsername(user)
 	user, err = models.ScanIntoUser(&row)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -78,22 +75,16 @@ func Login(ctx *gin.Context) {
 }
 
 // DELETE a user
-func DeleteAccount(ctx *gin.Context) {
+func (h *Handler) DeleteAccount(ctx *gin.Context) {
 
 	//Handle the account request
-	user, err := handleAccountRequest(ctx)
-	if err != nil {
-		return
-	}
-
-	//Get the store
-	pgs, err := database.GetDatabaseStore()
+	user, err := h.handleAccountRequest(ctx)
 	if err != nil {
 		return
 	}
 
 	//Delete the user
-	err = pgs.DeleteUser(user)
+	err = h.databaseStore.DeleteUser(user)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
@@ -103,7 +94,7 @@ func DeleteAccount(ctx *gin.Context) {
 }
 
 // PUT a new version of the user details into the database
-func UpdateUserDetails(ctx *gin.Context) {
+func (h *Handler) UpdateUserDetails(ctx *gin.Context) {
 
 	var input models.UpdateRequest
 
@@ -113,24 +104,13 @@ func UpdateUserDetails(ctx *gin.Context) {
 		return
 	}
 
-	//Map the details in the request accordingly
-	oldUser := models.User{
-		Username: input.Oldusername,
-		Password: input.Oldpassword,
-	}
 	newUser := models.User{
+		ID:       input.ID,
 		Username: input.Newusername,
 		Password: input.Newpassword,
 	}
 
-	//Get the store
-	pgs, err := database.GetDatabaseStore()
-	if err != nil {
-		return
-	}
-
-	//Update the user
-	err = pgs.UpdateUser(&oldUser, input.Newusername, input.Newpassword)
+	err := h.databaseStore.UpdateUser(&newUser)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}

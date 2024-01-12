@@ -5,6 +5,7 @@ go 1.21.5
 require (
 	github.com/georgysavva/scany/v2 v2.1.0
 	github.com/gin-gonic/gin v1.9.1
+	github.com/golang-jwt/jwt/v5 v5.2.0
 	github.com/jackc/pgx/v5 v5.5.1
 	golang.org/x/crypto v0.17.0
 )
