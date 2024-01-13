@@ -5,4 +5,4 @@ run: build
 	@./main
 
 test: 
-	@go test -v ./...x
+	@go test -v ./...
