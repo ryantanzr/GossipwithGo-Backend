@@ -12,8 +12,8 @@ type Handler struct {
 	databaseStore database.PostgresStore
 }
 
-func InitializeHandler(dbs database.PostgresStore) Handler {
-	return Handler{databaseStore: dbs}
+func InitializeHandler(dbs database.PostgresStore) *Handler {
+	return &Handler{databaseStore: dbs}
 }
 
 // Utility function to process a json object for general account related activities
@@ -117,4 +117,88 @@ func (h *Handler) UpdateUserDetails(ctx *gin.Context) {
 
 	//Return a json to indicate the operation was successful
 	ctx.JSON(http.StatusOK, gin.H{"user": newUser})
+}
+
+// Utility function to process a json object for general account related activities
+func (h *Handler) handlePostRequest(ctx *gin.Context) (*models.Post, error) {
+
+	var input models.PostRequest
+
+	//Bind the json to the request object
+	if err := ctx.BindJSON(&input); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"accError": err.Error()})
+		return nil, err
+	}
+
+	//Map it to the user model and return it
+	return &models.Post{
+		ID:      input.ID,
+		Author:  input.Author,
+		Title:   input.Title,
+		Content: input.Content,
+	}, nil
+}
+
+// POST a new post into the database
+func (h *Handler) Post(ctx *gin.Context) {
+
+	//Bind the json to the request object
+	post, err := h.handlePostRequest(ctx)
+	if err != nil {
+		return
+	}
+
+	//Create a new post
+	err = h.databaseStore.CreatePost(post)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+
+	//Return a json to indicate the operation was successful
+	ctx.JSON(http.StatusCreated, gin.H{"user": post})
+}
+
+// PUT a new version of an updated post
+func (h *Handler) UpdatePost(ctx *gin.Context) {
+
+	var input models.PostRequest
+
+	//Bind the json to the request object
+	if err := ctx.BindJSON(&input); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	//Bind the request to a model
+	post, err := h.handlePostRequest(ctx)
+	if err != nil {
+		return
+	}
+
+	err = h.databaseStore.UpdatePost(post)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+
+	//Return a json to indicate the operation was successful
+	ctx.JSON(http.StatusOK, gin.H{"post": post})
+}
+
+// PUT a new version of an updated post
+func (h *Handler) DeletePost(ctx *gin.Context) {
+
+	//Handle the post request
+	post, err := h.handlePostRequest(ctx)
+	if err != nil {
+		return
+	}
+
+	//Delete the post
+	err = h.databaseStore.DeletePost(post)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+
+	//Return a json to indicate the operation was successful
+	ctx.JSON(http.StatusOK, gin.H{"post": post})
 }

@@ -1,8 +1,20 @@
+.PHONY: build run test clean
+
+BINARY_NAME=main
+CMD_PATH=./cmd/server
+
 build:
-	@go build ./cmd/server/main.go
+    @echo "Building..."
+    @go build -o $(BINARY_NAME) $(CMD_PATH)/main.go
 
 run: build
-	@./main
+    @echo "Running..."
+    @./$(BINARY_NAME)
 
 test: 
-	@go test -v ./...
+    @echo "Testing..."
+    @go test -v ./...
+
+clean:
+    @echo "Cleaning..."
+    @rm -f $(BINARY_NAME)

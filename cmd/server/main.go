@@ -24,7 +24,7 @@ func main() {
 	handler := handlers.InitializeHandler(*dbStore)
 
 	engine := gin.Default()
-	routes.RouteSetup(handler, engine)
+	routes.RouteSetup(*handler, engine)
 
 	engine.Run(listenerAddress)
 }

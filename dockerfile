@@ -26,7 +26,10 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o ./bin/server/ ./cmd/server/
 FROM alpine:latest AS trim
 
 # Copy the executable from the build stage
-COPY --from=build src/bin/server ./bin/
+COPY --from=build /src/bin/server/ /app/
 
-EXPOSE 8080
-CMD ["/gossip-with-go-backend"]
+# Set the working directory to /app
+WORKDIR /app
+
+# Command to run the executable
+CMD ["./server"]

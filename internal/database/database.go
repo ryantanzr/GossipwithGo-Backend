@@ -21,14 +21,20 @@ type Storage interface {
 	UpdatePost(*models.Post) error
 }
 
+// PostgresStore is a struct that holds the connection to the database
 type PostgresStore struct {
 	conn *pgxpool.Pool
 }
 
+// TransactionFunc is a function that takes a transaction and returns an error.
+type TransactionFunc func(tx pgx.Tx) error
+
+// Getter function, sorry...
 func GetDatabaseStore() (*PostgresStore, error) {
 	return &PostgresStore{}, nil
 }
 
+// Initializes the database
 func StoreInit(dbConnectionString string) (*PostgresStore, error) {
 
 	emptyContext := context.Background()
@@ -51,6 +57,22 @@ func StoreInit(dbConnectionString string) (*PostgresStore, error) {
 	}, nil
 }
 
+// A helper function that handles the boilerplate code for starting and committing a transaction.
+func (pgs *PostgresStore) WithTransaction(ctx context.Context, tf TransactionFunc) (err error) {
+	tx, err := pgs.conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	err = tf(tx)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
+}
+
 // Creates a user
 func (pgs *PostgresStore) CreateUser(user *models.User) error {
 
@@ -58,29 +80,11 @@ func (pgs *PostgresStore) CreateUser(user *models.User) error {
 		return err
 	}
 
-	//Begin the transaction (all-or-nothing)
-	tx, err := pgs.conn.Begin(context.Background())
-	if err != nil {
+	return pgs.WithTransaction(context.Background(), func(tx pgx.Tx) error {
+		insertQuery := "INSERT INTO users VALUES (DEFAULT, $1, $2)"
+		_, err := tx.Exec(context.Background(), insertQuery, user.Username, user.Password)
 		return err
-	}
-
-	//Is a no-op if the transaction completes
-	defer tx.Rollback(context.Background())
-
-	//Execute the transaction
-	insertQuery := "INSERT INTO users VALUES (DEFAULT, $1, $2)"
-	_, err = tx.Exec(context.Background(), insertQuery, user.Username, user.Password)
-	if err != nil {
-		return err
-	}
-
-	//Commit the transaction (mark it as completed)
-	err = tx.Commit(context.Background())
-	if err != nil {
-		return err
-	}
-
-	return nil
+	})
 }
 
 // Get Account By Username
@@ -113,142 +117,46 @@ func (pgs *PostgresStore) GetAccountByID(id int) pgx.Rows {
 
 // Delete a user
 func (pgs *PostgresStore) DeleteUser(user *models.User) error {
-
-	//Begin the transaction (all-or-nothing)
-	tx, err := pgs.conn.Begin(context.Background())
-	if err != nil {
+	return pgs.WithTransaction(context.Background(), func(tx pgx.Tx) error {
+		deleteQuery := `DELETE FROM users WHERE users.username = $1`
+		_, err := tx.Exec(context.Background(), deleteQuery, user.Username)
 		return err
-	}
-
-	//Is a no-op if the transaction completes
-	defer tx.Rollback(context.Background())
-
-	//Execute the transaction
-	deleteQuery := `DELETE FROM users WHERE users.username = $1`
-	_, err = tx.Exec(context.Background(), deleteQuery, user.Username)
-	if err != nil {
-		return err
-	}
-
-	//Commit the transaction (mark it as completed)
-	err = tx.Commit(context.Background())
-	if err != nil {
-		return err
-	}
-
-	return nil
+	})
 }
 
 // Updates a user's details
 func (pgs *PostgresStore) UpdateUser(newUser *models.User) error {
-
-	//Begin the transaction (all-or-nothing)
-	tx, err := pgs.conn.Begin(context.Background())
-	if err != nil {
+	return pgs.WithTransaction(context.Background(), func(tx pgx.Tx) error {
+		updateQuery := `UPDATE users SET username = $1, password = $2 WHERE "userID" = $3`
+		_, err := tx.Exec(context.Background(), updateQuery, newUser.Username, newUser.Password, newUser.ID)
 		return err
-	}
-
-	//Is a no-op if the transaction completes
-	defer tx.Rollback(context.Background())
-
-	//Execute the transaction
-	updateQuery := `UPDATE users SET username = $1, password = $2 WHERE "userID" = $3`
-	_, err = tx.Exec(context.Background(), updateQuery, newUser.Username, newUser.Password, newUser.ID)
-	if err != nil {
-		return err
-	}
-
-	//Commit the transaction (mark it as completed)
-	err = tx.Commit(context.Background())
-	if err != nil {
-		return err
-	}
-
-	return nil
+	})
 }
 
 // Creates a new post
-func (pgs *PostgresStore) CreatePost(user *models.User, post *models.Post) error {
-
-	//Begin the transaction (all-or-nothing)
-	tx, err := pgs.conn.Begin(context.Background())
-	if err != nil {
+func (pgs *PostgresStore) CreatePost(post *models.Post) error {
+	return pgs.WithTransaction(context.Background(), func(tx pgx.Tx) error {
+		insertQuery := "INSERT INTO posts VALUES (DEFAULT, $1, $2, $3)"
+		_, err := tx.Exec(context.Background(), insertQuery, post.Author, post.Title, post.Content)
 		return err
-	}
-
-	//Is a no-op if the transaction completes
-	defer tx.Rollback(context.Background())
-
-	//Execute the transaction
-	insertQuery := "INSERT INTO posts VALUES (DEFAULT, $1, $2, $3)"
-	_, err = tx.Exec(context.Background(), insertQuery, user.Username, post.Title, post.Content)
-	if err != nil {
-		return err
-	}
-
-	//Commit the transaction (mark it as completed)
-	err = tx.Commit(context.Background())
-	if err != nil {
-		return err
-	}
-
-	return nil
-
+	})
 }
 
 // Deletes a post
-func (pgs *PostgresStore) DeletePost(user *models.User, post *models.Post) error {
-
-	//Begin the transaction (all-or-nothing)
-	tx, err := pgs.conn.Begin(context.Background())
-	if err != nil {
+func (pgs *PostgresStore) DeletePost(post *models.Post) error {
+	return pgs.WithTransaction(context.Background(), func(tx pgx.Tx) error {
+		deleteQuery := "DELETE FROM posts WHERE posts.author = $1 AND posts.title = $2"
+		_, err := tx.Exec(context.Background(), deleteQuery, post.Author, post.Title)
 		return err
-	}
-
-	//Is a no-op if the transaction completes
-	defer tx.Rollback(context.Background())
-
-	//Execute the transaction
-	deleteQuery := "DELETE FROM posts WHERE posts.author = $1 AND posts.title = $2"
-	_, err = tx.Exec(context.Background(), deleteQuery, user.Username, post.Title)
-	if err != nil {
-		return err
-	}
-
-	//Commit the transaction (mark it as completed)
-	err = tx.Commit(context.Background())
-	if err != nil {
-		return err
-	}
-
-	return nil
-
+	})
 }
 
 // Updates a post
-func (pgs *PostgresStore) UpdatePost(user *models.User, post *models.Post) error {
-
-	//Begin the transaction (all-or-nothing)
-	tx, err := pgs.conn.Begin(context.Background())
-	if err != nil {
+func (pgs *PostgresStore) UpdatePost(post *models.Post) error {
+	return pgs.WithTransaction(context.Background(), func(tx pgx.Tx) error {
+		updateQuery := "UPDATE post SET title = $s1, content = $s2 WHERE author = $s3, title = $4"
+		_, err := tx.Exec(context.Background(), updateQuery, post.Title, post.Content, post.Author, post.Title)
 		return err
-	}
+	})
 
-	//Is a no-op if the transaction completes
-	defer tx.Rollback(context.Background())
-
-	//Execute the transaction
-	updateQuery := "UPDATE post SET title = $s1, content = $s2 WHERE author = $s3, title = $4"
-	_, err = tx.Exec(context.Background(), updateQuery, post.Title, post.Content, user.Username, post.Title)
-	if err != nil {
-		return err
-	}
-
-	//Commit the transaction (mark it as completed)
-	err = tx.Commit(context.Background())
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
