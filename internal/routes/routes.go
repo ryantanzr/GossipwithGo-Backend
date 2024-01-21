@@ -20,7 +20,7 @@ func RouteSetup(h handlers.Handler, r *gin.Engine) {
 	// Post-related requests
 	posts := r.Group("/posts")
 	{
-		posts.POST("/", h.Post)
+		posts.POST("/", h.CreatePost)
 		posts.PUT("/", h.UpdatePost)
 		posts.DELETE("/", h.DeletePost)
 	}
