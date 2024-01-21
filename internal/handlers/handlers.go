@@ -64,7 +64,7 @@ func (h *Handler) Login(ctx *gin.Context) {
 	}
 
 	//Query the database for the account and scan the data into the row
-	row := h.databaseStore.GetAccountByUsername(user)
+	row := h.databaseStore.GetUserByUsername(user)
 	user, err = models.ScanIntoUser(&row)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
