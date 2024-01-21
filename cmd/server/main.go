@@ -12,10 +12,9 @@ import (
 
 func main() {
 
-	os.Setenv("DATABASE_URL", "host=localhost port=5432 dbname=GossipWithGo user=postgres sslmode=prefer connect_timeout=10")
 	listenerAddress := ":3000"
 
-	dbStore, err := database.StoreInit(os.Getenv("DATABASE_URL"))
+	dbStore, err := database.StoreInit(os.Getenv("DB_URL"))
 	if err != nil {
 		fmt.Println(err)
 		return
