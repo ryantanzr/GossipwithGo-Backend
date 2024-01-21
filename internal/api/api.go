@@ -28,10 +28,15 @@ func WithJWTAuthorization(handlerFunc gin.HandlerFunc) gin.HandlerFunc {
 			return
 		}
 
-		//Map the claims
-		if _, ok := token.Claims.(jwt.MapClaims); !ok {
+		//Assert the claims
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: invalid token claims"})
 			return
 		}
+
+		// Add claims to context
+		ctx.Set("claims", claims)
 
 		//Call the handler function
 		handlerFunc(ctx)

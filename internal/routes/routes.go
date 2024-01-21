@@ -8,23 +8,17 @@ import (
 
 func RouteSetup(h handlers.Handler, r *gin.Engine) {
 
-	//Account-related requests
-	registration := r.Group("/acc")
+	// Account-related requests
+	accounts := r.Group("/accounts")
 	{
-		registration.POST("/", h.Registration)
-		registration.PUT("/", h.UpdateUserDetails)
-		registration.DELETE("/", h.DeleteAccount)
-
+		accounts.POST("/", h.Registration)
+		accounts.PUT("/", h.UpdateUserDetails)
+		accounts.DELETE("/", h.DeleteAccount)
+		accounts.POST("/login", api.WithJWTAuthorization(h.Login))
 	}
 
-	//Login requests
-	login := r.Group("/login")
-	{
-		login.GET("/", api.WithJWTAuthorization(h.Login))
-	}
-
-	//Post-related requests
-	posts := r.Group("/post")
+	// Post-related requests
+	posts := r.Group("/posts")
 	{
 		posts.POST("/", h.Post)
 		posts.PUT("/", h.UpdatePost)
