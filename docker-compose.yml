@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  docker-forum-server:
+    depends_on:
+      - postgresql
+    build:
+      context: .
+    container_name: rest-server
+    hostname: rest-server
+    networks:
+      - mynet
+    ports:
+      - 80:8080
+    env_file:
+      - ./.env
+    deploy:
+      restart_policy:
+        condition: on-failure
+  postgresql:
+    image: postgres:latest
+    container_name: postgres
+    hostname: db
+    networks:
+      - mynet
+    ports:
+      - 5432:5432
+    env_file:
+      - ./.env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+
+networks:
+  mynet:
+    driver: bridge
