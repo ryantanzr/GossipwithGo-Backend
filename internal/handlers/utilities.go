@@ -67,5 +67,24 @@ func (h *Handler) handlePostRequest(ctx *gin.Context) (*models.Post, error) {
 		Author:  input.Author,
 		Title:   input.Title,
 		Content: input.Content,
+		Likes:   input.Likes,
+	}, nil
+}
+
+// Utility function to process a json object for general user action related activities
+func (h *Handler) handleUserActionRequest(ctx *gin.Context) (*models.UserAction, error) {
+
+	var input models.UserActionRequest
+
+	//Bind the json to the request object
+	if err := bindJSON(ctx, &input); err != nil {
+		return nil, err
+	}
+
+	//Map it to the user model and return it
+	return &models.UserAction{
+		ActorID:    input.ActorID,
+		ReceiverID: input.ReceiverID,
+		ActionType: input.ActionType,
 	}, nil
 }

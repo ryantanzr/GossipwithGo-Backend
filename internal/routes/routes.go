@@ -24,4 +24,18 @@ func RouteSetup(h handlers.Handler, r *gin.Engine) {
 		posts.PUT("/", h.UpdatePost)
 		posts.DELETE("/", h.DeletePost)
 	}
+
+	// Like-related requests
+	likes := r.Group("/likes")
+	{
+		likes.POST("/", h.CreateLike)
+		likes.DELETE("/", h.DeleteLike)
+	}
+
+	// Subscription-related requests
+	subscriptions := r.Group("/subscriptions")
+	{
+		subscriptions.POST("/", h.CreateSubscription)
+		subscriptions.DELETE("/", h.DeleteSubscription)
+	}
 }

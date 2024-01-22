@@ -12,6 +12,7 @@ type Post struct {
 	Author  string `json:"author"`
 	Title   string `json:"title"`
 	Content string `json:"content"`
+	Likes   int    `json:"likes"`
 }
 
 func ScanIntoPosts(rows *pgx.Rows) ([]*Post, error) {
@@ -28,7 +29,7 @@ func ScanIntoPosts(rows *pgx.Rows) ([]*Post, error) {
 
 func ScanIntoPost(rows *pgx.Rows) (*Post, error) {
 
-	post := Post{0, "", "", ""}
+	post := Post{0, "", "", "", 0}
 	if err := pgxscan.ScanRow(&post, *rows); err != nil {
 		fmt.Println("Scan row error", err)
 		return &post, err
